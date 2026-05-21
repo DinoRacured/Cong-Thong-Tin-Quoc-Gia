@@ -162,9 +162,9 @@ async function extractDetailedData(page) {
     await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36');
 
     let allData = []; // Toàn bộ dữ liệu (để lưu file local)
-    let buffer = [];  // Bộ nhớ đệm để gửi n8n (30 mục)
+    let buffer = [];  // Bộ nhớ đệm để gửi n8n (40 mục)
     const total = targetUrls.length;
-    const batchSizeForN8n = 30;
+    const batchSizeForN8n = 40;
 
     async function sendBatch(dataToSend, currentCount, maxRetries = 3) {
         const batchNum = Math.ceil(currentCount / batchSizeForN8n);
@@ -262,13 +262,13 @@ async function extractDetailedData(page) {
             allData.push(detailData);
             buffer.push(detailData);
 
-            // Cứ 30 mục thì gửi n8n một lần
+            // Cứ 40 mục thì gửi n8n một lần
             if (buffer.length === batchSizeForN8n) {
                 await sendBatch(buffer, i + 1);
                 buffer = []; // Reset buffer sau khi gửi
                 // Lưu file local dự phòng
                 fs.writeFileSync('dichvucong_data_production.json', JSON.stringify(allData, null, 2), 'utf-8');
-                await gitPush(); // Tự động đẩy lên GitHub sau mỗi 30 mục
+                await gitPush(); // Tự động đẩy lên GitHub sau mỗi 40 mục
             }
 
         } catch (e) {

@@ -7,8 +7,8 @@ pm2 start scraper.js --name "dvc-scraper" --no-autorestart
 // 3. Xoá tiến trình cũ và chạy lại 1 lần
 pm2 delete dvc-scraper && pm2 start scraper.js --name "dvc-scraper" --no-autorestart
 
-// 4. Chạy định kỳ (Ví dụ: chạy vào lúc 1h sáng mỗi ngày)
-pm2 start scraper.js --name "dvc-scraper" --cron "0 1 * * *" --no-autorestart
+// 4. Chạy định kỳ 1 tuần 1 lần (Ví dụ: chạy vào lúc 1h sáng Chủ Nhật hàng tuần)
+pm2 start scraper.js --name "dvc-scraper" --cron "0 1 * * 0" --no-autorestart
 
 // 5. Xem log (theo dõi tiến trình cào dữ liệu)
 pm2 logs dvc-scraper --lines 100
