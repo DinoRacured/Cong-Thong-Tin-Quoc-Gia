@@ -222,7 +222,8 @@ async function extractDetailedData(page) {
                 execSync('git remote add origin git@github.com:DinoRacured/Cong-Thong-Tin-Quoc-Gia.git');
             }
 
-            execSync('git add .');
+            // Chỉ thêm các tệp mã nguồn và JSON, loại trừ các tệp .csv và thư mục node_modules
+            execSync('git add . ":(exclude)*.csv" ":(exclude)node_modules/"');
             const status = execSync('git status --porcelain').toString();
             if (status) {
                 const commitMsg = `Cập nhật dữ liệu tự động: ${new Date().toLocaleString('vi-VN')}`;
@@ -267,6 +268,7 @@ async function extractDetailedData(page) {
                 buffer = []; // Reset buffer sau khi gửi
                 // Lưu file local dự phòng
                 fs.writeFileSync('dichvucong_data_production.json', JSON.stringify(allData, null, 2), 'utf-8');
+                await gitPush(); // Tự động đẩy lên GitHub sau mỗi 30 mục
             }
 
         } catch (e) {
