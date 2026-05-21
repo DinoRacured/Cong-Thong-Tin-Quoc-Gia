@@ -1,0 +1,35 @@
+// 1. Chạy ngầm và cào liên tục (Tự động khởi động lại nếu lỗi)
+pm2 start scraper.js --name "dvc-scraper"
+
+// 2. Chạy 1 lần không tự khởi động lại (Chạy xong tự tắt tiến trình)
+pm2 start scraper.js --name "dvc-scraper" --no-autorestart
+
+// 3. Xoá tiến trình cũ và chạy lại 1 lần
+pm2 delete dvc-scraper && pm2 start scraper.js --name "dvc-scraper" --no-autorestart
+
+// 4. Chạy định kỳ (Ví dụ: chạy vào lúc 1h sáng mỗi ngày)
+pm2 start scraper.js --name "dvc-scraper" --cron "0 1 * * *" --no-autorestart
+
+// 5. Xem log (theo dõi tiến trình cào dữ liệu)
+pm2 logs dvc-scraper --lines 100
+
+// 6. Dừng cào dữ liệu
+pm2 stop dvc-scraper
+
+// 7. Khởi động lại
+pm2 restart dvc-scraper
+
+// 8. Xoá tiến trình khỏi PM2
+pm2 delete dvc-scraper
+
+// 9. Lưu trạng thái PM2 (để tự bật lại khi khởi động máy tính)
+pm2 save --force
+
+// 10. Tắt sạch mọi thứ (Kill PM2)
+pm2 kill
+
+// --- GHI CHÚ ---
+// Chạy ẩn (headless: "new" trong code)
+// Chạy hiện (headless: false trong code)
+// Xoá file dữ liệu cũ để cào lại từ đầu: Xoá tay file "dichvucong_data.json" hoặc dùng lệnh:
+// del dichvucong_data.json
