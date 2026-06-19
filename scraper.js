@@ -174,37 +174,40 @@ async function extractDetailedData(page) {
         try {
             console.log('>>> Đang chuẩn bị đẩy toàn bộ dữ liệu lên GitHub...');
 
+            // Thêm tùy chọn để ẩn cửa sổ cmd khi chạy nền trên Windows
+            const execOpts = { windowsHide: true };
+
             // Kiểm tra xem thư mục đã được khởi tạo Git chưa
             try {
-                execSync('git rev-parse --is-inside-work-tree', { stdio: 'ignore' });
+                execSync('git rev-parse --is-inside-work-tree', { stdio: 'ignore', ...execOpts });
             } catch (e) {
-                execSync('git init');
+                execSync('git init', execOpts);
             }
 
             // Đảm bảo remote origin luôn sử dụng địa chỉ SSH để push không cần mật khẩu
             try {
-                execSync('git remote set-url origin git@github.com:DinoRacured/Cong-Thong-Tin-Quoc-Gia.git');
+                execSync('git remote set-url origin git@github.com:DinoRacured/Cong-Thong-Tin-Quoc-Gia.git', execOpts);
             } catch (e) {
-                execSync('git remote add origin git@github.com:DinoRacured/Cong-Thong-Tin-Quoc-Gia.git');
+                execSync('git remote add origin git@github.com:DinoRacured/Cong-Thong-Tin-Quoc-Gia.git', execOpts);
             }
 
             // Chỉ thêm các tệp mã nguồn và JSON, loại trừ các tệp .csv và thư mục node_modules
-            execSync('git add . ":(exclude)*.csv" ":(exclude)node_modules/"');
-            const status = execSync('git status --porcelain').toString();
+            execSync('git add . ":(exclude)*.csv" ":(exclude)node_modules/"', execOpts);
+            const status = execSync('git status --porcelain', execOpts).toString();
             if (status) {
                 const commitMsg = `Cập nhật dữ liệu tự động: ${new Date().toLocaleString('vi-VN')}`;
-                execSync(`git commit -m "${commitMsg}"`);
-                execSync('git branch -M main');
+                execSync(`git commit -m "${commitMsg}"`, execOpts);
+                execSync('git branch -M main', execOpts);
 
                 // Đồng bộ dữ liệu từ server về trước khi đẩy lên để tránh lỗi conflict
                 try {
                     console.log('Đang kiểm tra và đồng bộ với GitHub...');
-                    execSync('git pull --rebase origin main');
+                    execSync('git pull --rebase origin main', execOpts);
                 } catch (e) {
                     // Bỏ qua nếu repository mới khởi tạo chưa có nhánh main
                 }
 
-                execSync('git push -u origin main');
+                execSync('git push -u origin main', execOpts);
                 console.log('>>> Đẩy lên GitHub thành công!');
             } else {
                 console.log('>>> Không có thay đổi mới để push.');

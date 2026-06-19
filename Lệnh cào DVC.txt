@@ -10,6 +10,9 @@ pm2 delete dvc-scraper && pm2 start scraper.js --name "dvc-scraper" --no-autores
 // 4. Chạy định kỳ 1 tuần 1 lần (Ví dụ: chạy vào lúc 1h sáng Chủ Nhật hàng tuần)
 pm2 start scraper.js --name "dvc-scraper" --cron "0 1 * * 0" --no-autorestart
 
+// 4b. Chạy vào lúc 0h00 sáng thứ 2 hàng tuần (Đầu tuần)
+pm2 start scraper.js --name "dvc-scraper" --cron "0 0 * * 1" --no-autorestart && pm2 save --force
+
 // 5. Xem log (theo dõi tiến trình cào dữ liệu)
 pm2 logs dvc-scraper --lines 100
 
