@@ -27,27 +27,6 @@ async function gotoWithRetry(page, url, options = {}, maxRetries = 3) {
  */
 async function extractDetailedData(page) {
     return await page.evaluate(async () => {
-        const delay = ms => new Promise(r => setTimeout(r, ms));
-
-        // --- 1. CUỘN THANH CUỘN NHỎ ĐỂ TẢI ĐỦ DỮ LIỆU ---
-        // Tìm vùng có thể cuộn (modal body hoặc main content)
-        const scrollTarget = document.querySelector('.modal-body, .modal, #main-content, .box-form-result') || window;
-        let lastHeight = scrollTarget.scrollHeight || document.body.scrollHeight;
-
-        for (let i = 0; i < 15; i++) {
-            if (scrollTarget === window) window.scrollBy(0, 800);
-            else scrollTarget.scrollTop += 800;
-
-            await delay(400); // Chờ render
-            let newHeight = scrollTarget.scrollHeight || document.body.scrollHeight;
-            if (newHeight === lastHeight && i > 3) break;
-            lastHeight = newHeight;
-        }
-
-        // Cuộn ngược lên đầu để bắt đầu bóc tách
-        if (scrollTarget !== window) scrollTarget.scrollTop = 0;
-        else window.scrollTo(0, 0);
-
         const data = {};
         const targetFields = [
             "Mã thủ tục", "Số quyết định", "Tên thủ tục", "Cấp thực hiện", "Loại thủ tục",
@@ -57,18 +36,8 @@ async function extractDetailedData(page) {
             "Kết quả thực hiện", "Căn cứ pháp lý", "Yêu cầu điều kiện thực hiện",
             "Từ khoá", "Mô tả"
         ];
-
-        // Khởi tạo các trường bằng chuỗi rỗng
         targetFields.forEach(f => data[f] = "");
 
-        // 2. Mở tất cả các mục ẩn (accordion)
-        const expandBtns = Array.from(document.querySelectorAll('.list-expand .item:not(.active) .title, .url.thick, [data-toggle="collapse"]'));
-        for (const btn of expandBtns) {
-            btn.click();
-            await delay(300);
-        }
-
-        // 3. Hàm hỗ trợ lấy dữ liệu bảng
         const tableToText = (table) => {
             if (!table) return '';
             const rows = Array.from(table.querySelectorAll('tr'));
@@ -78,49 +47,46 @@ async function extractDetailedData(page) {
             }).join('\n');
         };
 
-        // 4. CHIẾN THUẬT QUÉT DỮ LIỆU:
-        // A. Quét các cặp Title - Content trong .list-expand
-        const items = document.querySelectorAll('.item, .row, tr, div[style*="display: flex"]');
-        items.forEach(item => {
-            const labelEl = item.querySelector('.title, label, th, .label, .col-sm-3, .col-xs-4');
-            const contentEl = item.querySelector('.content, .value, td, .article, .col-sm-9, .col-xs-8');
+        const titleEl = document.querySelector('h3.text-lg.font-semibold');
+        if (titleEl) data["Tên thủ tục"] = titleEl.innerText.trim();
 
-            if (labelEl && contentEl) {
-                const labelText = labelEl.innerText.trim().replace(/:$/, '');
-                // Tìm trường khớp nhất trong danh sách mục tiêu
-                const matchedField = targetFields.find(f =>
-                    f.toLowerCase() === labelText.toLowerCase() ||
-                    labelText.toLowerCase().includes(f.toLowerCase()) ||
-                    f.toLowerCase().includes(labelText.toLowerCase())
-                );
-
-                if (matchedField && !data[matchedField]) {
-                    const table = contentEl.querySelector('table');
-                    data[matchedField] = table ? tableToText(table) : contentEl.innerText.trim();
-                }
+        const gridRows = document.querySelectorAll('.flex.flex-col.md\\:flex-row.border-gray-300');
+        gridRows.forEach(row => {
+            const divs = row.children;
+            if (divs.length >= 2) {
+                const labelStr = divs[0].innerText.trim();
+                const cleanLabel = labelStr.toLowerCase().replace(/[,\.]/g, '').replace(/\s+/g, ' ');
+                const valStr = divs[1].innerText.trim();
+                
+                const matchedField = targetFields.find(f => {
+                    const cleanF = f.toLowerCase().replace(/[,\.]/g, '').replace(/\s+/g, ' ');
+                    return cleanF === cleanLabel || cleanLabel.includes(cleanF) || cleanF.includes(cleanLabel);
+                });
+                if (matchedField) data[matchedField] = valStr;
             }
         });
 
-        // B. Quét các phần có tiêu đề H2 (thường là Cách thức, Thành phần hồ sơ, Trình tự)
-        const headings = Array.from(document.querySelectorAll('h2, .main-title-sub'));
-        headings.forEach(h => {
-            const hText = h.innerText.trim();
-            const matchedField = targetFields.find(f => hText.includes(f));
-            if (matchedField && !data[matchedField]) {
-                let nextEl = h.nextElementSibling;
-                // Nếu là div bao ngoài, tìm bảng bên trong
-                const table = nextEl?.tagName === 'TABLE' ? nextEl : nextEl?.querySelector('table');
-                if (table) {
-                    data[matchedField] = tableToText(table);
-                } else if (nextEl) {
-                    data[matchedField] = nextEl.innerText.trim();
+        const h4s = document.querySelectorAll('h4');
+        h4s.forEach(h4 => {
+            const labelStr = h4.innerText.trim();
+            const cleanLabel = labelStr.toLowerCase().replace(/[,\.]/g, '').replace(/\s+/g, ' ');
+            const matchedField = targetFields.find(f => {
+                const cleanF = f.toLowerCase().replace(/[,\.]/g, '').replace(/\s+/g, ' ');
+                return cleanLabel.includes(cleanF) || cleanF.includes(cleanLabel);
+            });
+
+            if (matchedField) {
+                let contentEl = h4.nextElementSibling;
+                if (contentEl) {
+                    const table = contentEl.tagName === 'TABLE' ? contentEl : contentEl.querySelector('table');
+                    if (table) {
+                        data[matchedField] = tableToText(table);
+                    } else {
+                        data[matchedField] = contentEl.innerText.trim();
+                    }
                 }
             }
         });
-
-        // C. Ưu tiên Tên thủ tục từ tiêu đề lớn nhất
-        const mainTitle = document.querySelector('.main-title');
-        if (mainTitle) data['Tên thủ tục'] = mainTitle.innerText.trim();
 
         return data;
     });
@@ -162,9 +128,9 @@ async function extractDetailedData(page) {
     await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36');
 
     let allData = []; // Toàn bộ dữ liệu (để lưu file local)
-    let buffer = [];  // Bộ nhớ đệm để gửi n8n (40 mục)
+    let buffer = [];  // Bộ nhớ đệm để gửi n8n (30 mục)
     const total = targetUrls.length;
-    const batchSizeForN8n = 40;
+    const batchSizeForN8n = 30;
 
     async function sendBatch(dataToSend, currentCount, maxRetries = 3) {
         const batchNum = Math.ceil(currentCount / batchSizeForN8n);
@@ -262,13 +228,13 @@ async function extractDetailedData(page) {
             allData.push(detailData);
             buffer.push(detailData);
 
-            // Cứ 40 mục thì gửi n8n một lần
+            // Cứ 30 mục thì gửi n8n một lần
             if (buffer.length === batchSizeForN8n) {
                 await sendBatch(buffer, i + 1);
                 buffer = []; // Reset buffer sau khi gửi
                 // Lưu file local dự phòng
                 fs.writeFileSync('dichvucong_data_production.json', JSON.stringify(allData, null, 2), 'utf-8');
-                await gitPush(); // Tự động đẩy lên GitHub sau mỗi 40 mục
+                await gitPush(); // Tự động đẩy lên GitHub sau mỗi 30 mục
             }
 
         } catch (e) {
