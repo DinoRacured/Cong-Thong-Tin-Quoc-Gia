@@ -1,3 +1,7 @@
+// 0. Lưu ý quan trọng: Mở terminal ở đúng thư mục chứa file scraper.js
+// Chạy lệnh sau để chuyển đúng vào thư mục nếu gặp lỗi "Script not found":
+// cd "C:\Users\IOC\Desktop\Kiem com\Cong-Thong-Tin-Quoc-Gia-main\Cong-Thong-Tin-Quoc-Gia-main"
+
 // 1. Chạy ngầm và cào liên tục (Tự động khởi động lại nếu lỗi)
 pm2 start scraper.js --name "dvc-scraper"
 
